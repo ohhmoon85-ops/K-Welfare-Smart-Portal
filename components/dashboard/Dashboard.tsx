@@ -61,8 +61,8 @@ export default function Dashboard() {
 
   // Procurement stats
   const totalVendors = state.vendors.length;
-  const approvedVendors = state.vendors.filter((v) => v.status === "approved").length;
-  const topVendor = state.vendors.find((v) => v.rank === 1);
+  const approvedVendors = state.vendors.filter((v) => v.status === "final_selected" || v.status === "first_selected").length;
+  const topVendor = state.vendors.find((v) => v.vendorChannel === "PX/BX" && v.rank === 1);
 
   // Audit stats
   const auditCount = state.auditLog.length;
@@ -190,16 +190,18 @@ export default function Dashboard() {
                   </div>
                   <div className="bg-amber-50 rounded p-2 text-xs space-y-1">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">가격 점수</span>
-                      <span className="font-medium">{topVendor.priceScore} (×0.7 = {(topVendor.priceScore * 0.7).toFixed(1)})</span>
+                      <span className="text-slate-500">적격심사 점수</span>
+                      <span className={`font-medium ${(topVendor.passedQualification) ? "text-emerald-600" : "text-red-500"}`}>
+                        {topVendor.qualificationScore}점 {topVendor.passedQualification ? "✓ 통과" : "✗ 미달"}
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">기술 점수</span>
-                      <span className="font-medium">{topVendor.technicalScore} (×0.3 = {(topVendor.technicalScore * 0.3).toFixed(1)})</span>
+                      <span className="text-slate-500">할인율</span>
+                      <span className="font-medium">{topVendor.discountRate}%</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between font-bold">
-                      <span>종합 점수</span>
+                      <span>합산 점수</span>
                       <span className="text-amber-600 text-sm">{topVendor.totalScore}점</span>
                     </div>
                   </div>

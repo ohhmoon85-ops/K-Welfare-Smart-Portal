@@ -1,5 +1,5 @@
-import { Student, Vendor, Room, AuditEntry } from "./types";
-import { calcStudentScores, calcVendorTotal } from "./scoring";
+import { Student, SchoolLevel, Vendor, VendorType, VendorSaleType, Room, AuditEntry } from "./types";
+import { calcStudentScores, calcVendorTotal, QUALIFICATION_THRESHOLD } from "./scoring";
 
 // ─── Seed Rooms ───────────────────────────────────────────────────────────────
 
@@ -18,67 +18,142 @@ function makeStudent(
   id: string,
   name: string,
   school: string,
+  schoolLevel: SchoolLevel,
   parentUnit: string,
   parentRank: string,
-  distanceKm: number,
-  siblings: number,
-  relocationCount: number,
+  serviceYears: number,
+  studentDistanceKm: number,
+  parentDistanceKm: number,
+  isStudentInCity: boolean,
+  isParentInCity: boolean,
+  isMultiChild: boolean,
+  isMulticultural: boolean,
+  isSingleParent: boolean,
   appliedAt: string
 ): Student {
   return {
     id,
     name,
     school,
+    schoolLevel,
     parentUnit,
     parentRank,
-    distanceKm,
-    siblings,
-    relocationCount,
-    scores: calcStudentScores(distanceKm, siblings, relocationCount),
+    serviceYears,
+    studentDistanceKm,
+    parentDistanceKm,
+    isStudentInCity,
+    isParentInCity,
+    isMultiChild,
+    isMulticultural,
+    isSingleParent,
+    scores: calcStudentScores(
+      schoolLevel, serviceYears,
+      studentDistanceKm, parentDistanceKm,
+      isStudentInCity, isParentInCity,
+      isMultiChild, isMulticultural, isSingleParent
+    ),
     status: "pending",
     appliedAt,
+    documents: {},
   };
 }
 
+// makeStudent(id, name, school, schoolLevel, parentUnit, parentRank,
+//             serviceYears, studentDistKm, parentDistKm,
+//             isStudentInCity, isParentInCity,
+//             isMultiChild, isMulticultural, isSingleParent, appliedAt)
 export const SEED_STUDENTS: Student[] = [
-  makeStudent("S001", "김지수", "육군부사관학교", "육군 1군단", "중령", 85, 3, 7, "2026-02-10T09:00:00"),
-  makeStudent("S002", "이민준", "공군사관학교", "공군 5전술비행단", "대령", 42, 2, 4, "2026-02-11T10:30:00"),
-  makeStudent("S003", "박서연", "해군사관학교", "해군 2함대", "소령", 130, 1, 2, "2026-02-12T11:00:00"),
-  makeStudent("S004", "최현우", "육군사관학교", "육군 3군단", "준장", 67, 4, 9, "2026-02-13T08:45:00"),
-  makeStudent("S005", "정유진", "한국외국어대학교", "해병대 2사단", "대위", 20, 2, 3, "2026-02-14T14:00:00"),
-  makeStudent("S006", "강도현", "연세대학교", "육군 특수전사령부", "중위", 95, 3, 6, "2026-02-15T09:30:00"),
-  makeStudent("S007", "오수아", "고려대학교", "공군 방공포병여단", "상사", 55, 1, 1, "2026-02-16T13:00:00"),
-  makeStudent("S008", "홍지원", "서울대학교", "해군 항공사령부", "원사", 110, 5, 8, "2026-02-17T10:00:00"),
+  makeStudent("S001", "김지수", "육군부사관학교부설고", "고등학생", "육군 1군단", "중령",
+    28, 95, 85, false, false, true, false, false, "2026-02-10T09:00:00"),
+  makeStudent("S002", "이민준", "한국외국어대학교", "대학생", "공군 5전술비행단", "대령",
+    32, 75, 60, false, false, false, false, false, "2026-02-11T10:30:00"),
+  makeStudent("S003", "박서연", "대방중학교", "중학생", "해군 2함대", "소령",
+    20, 55, 70, false, false, false, true, false, "2026-02-12T11:00:00"),
+  makeStudent("S004", "최현우", "육군사관학교", "대학생", "육군 3군단", "준장",
+    35, 110, 95, false, false, true, false, false, "2026-02-13T08:45:00"),
+  makeStudent("S005", "정유진", "용산초등학교", "초등학생", "해병대 2사단", "대위",
+    15, 45, 40, false, false, false, false, true, "2026-02-14T14:00:00"),
+  makeStudent("S006", "강도현", "연세대학교", "대학생", "육군 특수전사령부", "중위",
+    10, 90, 80, false, false, false, false, false, "2026-02-15T09:30:00"),
+  makeStudent("S007", "오수아", "계성고등학교", "고등학생", "공군 방공포병여단", "상사",
+    22, 65, 55, false, false, false, false, false, "2026-02-16T13:00:00"),
+  makeStudent("S008", "홍지원", "서울대학교", "대학생", "해군 항공사령부", "원사",
+    30, 100, 90, false, false, true, false, false, "2026-02-17T10:00:00"),
 ];
 
-// ─── Seed Vendors ─────────────────────────────────────────────────────────────
+// ─── Seed Vendors (PX/BX 정기선정 방식) ──────────────────────────────────────
 
-function makeVendor(
+function makePxVendor(
   id: string,
   name: string,
-  item: string,
-  priceScore: number,
-  technicalScore: number,
+  subCategory: string,
+  vendorType: VendorType,
+  qualificationScore: number,
+  discountRate: number,
   submittedAt: string
 ): Vendor {
   return {
     id,
     name,
-    item,
-    priceScore,
-    technicalScore,
-    totalScore: calcVendorTotal(priceScore, technicalScore),
+    item: "PX/BX 위탁운영",
+    subCategory,
+    vendorChannel: "PX/BX",
+    vendorType,
+    qualificationScore,
+    discountRate,
+    totalScore: calcVendorTotal(qualificationScore, discountRate),
+    passedQualification: qualificationScore >= QUALIFICATION_THRESHOLD,
+    rank: undefined,
     status: "pending",
     submittedAt,
+    documents: {},
+  };
+}
+
+function makeWaVendor(
+  id: string,
+  name: string,
+  subCategory: string,
+  productCategory: string,
+  vendorSaleType: VendorSaleType,
+  businessRegNumber: string,
+  requestedPrice: number,
+  marketLowestPrice: number,
+  submittedAt: string
+): Vendor {
+  return {
+    id,
+    name,
+    item: "WA-mall 일반상품",
+    subCategory,
+    vendorChannel: "WA-mall",
+    vendorSaleType,
+    businessRegNumber,
+    productCategory,
+    requestedPrice,
+    marketLowestPrice,
+    rank: undefined,
+    status: "pending",
+    submittedAt,
+    documents: {},
   };
 }
 
 export const SEED_VENDORS: Vendor[] = [
-  makeVendor("V001", "(주)한국군수산업", "전투식량 3개월분", 88, 72, "2026-02-20T09:00:00"),
-  makeVendor("V002", "(주)대한방산", "전투식량 3개월분", 75, 91, "2026-02-20T10:00:00"),
-  makeVendor("V003", "(주)국방물자", "전투식량 3개월분", 92, 65, "2026-02-20T11:00:00"),
-  makeVendor("V004", "(주)청진군수", "사무용 비품 일체", 80, 85, "2026-02-21T09:30:00"),
-  makeVendor("V005", "(주)용사물자", "사무용 비품 일체", 95, 70, "2026-02-21T11:00:00"),
+  // ─── PX/BX 정기선정 ───────────────────────────────────────────────
+  makePxVendor("V001", "(주)맛나식품",  "과자류", "일반",    87, 12.5, "2026-04-15T09:00:00"),
+  makePxVendor("V002", "(주)대한제과",  "과자류", "일반",    82, 15.0, "2026-04-15T10:00:00"),
+  makePxVendor("V003", "(주)한국스낵",  "과자류", "일반",    76, 18.0, "2026-04-15T11:00:00"),
+  makePxVendor("V004", "(주)청정음료",  "음료류", "경쟁과열", 91,  8.0, "2026-04-16T09:00:00"),
+  makePxVendor("V005", "(주)국방음료",  "음료류", "경쟁과열", 85, 10.5, "2026-04-16T10:30:00"),
+  makePxVendor("V006", "(주)용사음료",  "음료류", "경쟁과열", 78, 14.0, "2026-04-16T11:00:00"),
+
+  // ─── WA-mall 일반상품 정기 선정 ('26-1차) ─────────────────────────
+  makeWaVendor("W001", "(주)뷰티라인",   "스킨케어",   "화장품",        "직접제조판매", "123-45-67890", 28000, 35000, "2026-03-06T10:00:00"),
+  makeWaVendor("W002", "(주)스포츠코리아","스포츠패션",  "스포츠/레저",   "OEM",          "234-56-78901", 45000, 58000, "2026-03-07T11:00:00"),
+  makeWaVendor("W003", "(주)홈쿡",       "밀키트/간편식","식품",          "직접제조판매", "345-67-89012", 9800,  12000, "2026-03-08T09:30:00"),
+  makeWaVendor("W004", "(주)유아세상",   "유아동용품",  "유아동",        "판매대행",     "456-78-90123", 32000, 40000, "2026-03-09T14:00:00"),
+  makeWaVendor("W005", "(주)글로벌임포트","화장품/수입",  "화장품",        "수입",         "567-89-01234", 55000, 72000, "2026-03-10T10:00:00"),
 ];
 
 // ─── Seed Audit Log ──────────────────────────────────────────────────────────

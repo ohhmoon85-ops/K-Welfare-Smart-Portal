@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useContext, useReducer, useCallback } from "react";
-import type { Student, Room, Vendor, AuditEntry, ActiveModule } from "./types";
+import type { Student, Room, Vendor, AuditEntry, ActiveModule, DocMap } from "./types";
 import { SEED_STUDENTS, SEED_ROOMS, SEED_VENDORS, SEED_AUDIT } from "./seed";
 import { calcStudentScores, calcVendorTotal, autoAssignRooms, rankVendors } from "./scoring";
 import { generateId } from "./utils";
@@ -24,8 +24,10 @@ type Action =
   | { type: "MANUAL_ASSIGN_ROOM"; studentId: string; roomId: string; admin: string; reason: string }
   | { type: "MANUAL_UNASSIGN_ROOM"; studentId: string; admin: string; reason: string }
   | { type: "OVERRIDE_STUDENT_STATUS"; studentId: string; status: Student["status"]; admin: string; reason: string }
+  | { type: "UPDATE_STUDENT_DOCS"; studentId: string; documents: DocMap }
   | { type: "ADD_VENDOR"; vendor: Omit<Vendor, "id" | "totalScore" | "rank" | "status" | "submittedAt"> }
   | { type: "OVERRIDE_VENDOR_STATUS"; vendorId: string; status: Vendor["status"]; admin: string; reason: string }
+  | { type: "UPDATE_VENDOR_DOCS"; vendorId: string; documents: DocMap }
   | { type: "RANK_VENDORS" };
 
 // ─── Reducer ──────────────────────────────────────────────────────────────────
@@ -37,9 +39,15 @@ function reducer(state: AppState, action: Action): AppState {
 
     case "ADD_STUDENT": {
       const scores = calcStudentScores(
-        action.student.distanceKm,
-        action.student.siblings,
-        action.student.relocationCount
+        action.student.schoolLevel,
+        action.student.serviceYears,
+        action.student.studentDistanceKm,
+        action.student.parentDistanceKm,
+        action.student.isStudentInCity,
+        action.student.isParentInCity,
+        action.student.isMultiChild,
+        action.student.isMulticultural,
+        action.student.isSingleParent
       );
       const newStudent: Student = {
         ...action.student,
@@ -164,17 +172,37 @@ function reducer(state: AppState, action: Action): AppState {
       };
     }
 
+    case "UPDATE_STUDENT_DOCS": {
+      const updatedStudents = state.students.map((s) =>
+        s.id === action.studentId ? { ...s, documents: action.documents } : s
+      );
+      return { ...state, students: updatedStudents };
+    }
+
     case "ADD_VENDOR": {
-      const totalScore = calcVendorTotal(action.vendor.priceScore, action.vendor.technicalScore);
+      const isPxBx = action.vendor.vendorChannel === "PX/BX";
+      const totalScore = isPxBx && action.vendor.qualificationScore != null && action.vendor.discountRate != null
+        ? calcVendorTotal(action.vendor.qualificationScore, action.vendor.discountRate)
+        : undefined;
       const newVendor: Vendor = {
         ...action.vendor,
         id: "V" + generateId(),
-        totalScore,
+        ...(isPxBx ? {
+          totalScore,
+          passedQualification: (action.vendor.qualificationScore ?? 0) >= 80,
+        } : {}),
         status: "pending",
         submittedAt: new Date().toISOString(),
       };
       const vendors = rankVendors([...state.vendors, newVendor]);
       return { ...state, vendors };
+    }
+
+    case "UPDATE_VENDOR_DOCS": {
+      const updatedVendors = state.vendors.map((v) =>
+        v.id === action.vendorId ? { ...v, documents: action.documents } : v
+      );
+      return { ...state, vendors: updatedVendors };
     }
 
     case "RANK_VENDORS": {

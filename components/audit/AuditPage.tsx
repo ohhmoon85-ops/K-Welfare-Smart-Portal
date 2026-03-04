@@ -171,16 +171,18 @@ export default function AuditPage() {
                       <CardContent className="pt-0">
                         <div className="bg-slate-50 rounded p-3 text-xs space-y-1 mb-3">
                           <div className="flex justify-between">
-                            <span className="text-slate-500">집↔학교 거리</span>
-                            <span className="font-medium">{student.distanceKm} km</span>
+                            <span className="text-slate-500">학교급</span>
+                            <span className="font-medium">{student.schoolLevel}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-500">자녀 수</span>
-                            <span className="font-medium">{student.siblings}명</span>
+                            <span className="text-slate-500">복무기간</span>
+                            <span className="font-medium">{student.serviceYears}년</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-500">부모 전근 횟수</span>
-                            <span className="font-medium">{student.relocationCount}회</span>
+                            <span className="text-slate-500">가점</span>
+                            <span className="font-medium">
+                              {student.isMultiChild || student.isMulticultural || student.isSingleParent ? "+1점" : "없음"}
+                            </span>
                           </div>
                         </div>
                         <ScoringBreakdown student={student} />
@@ -194,7 +196,7 @@ export default function AuditPage() {
           <div>
             <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2 mb-3">
               <BarChart3 className="w-4 h-4 text-amber-500" />
-              조달·입찰 — 업체 평가 상세 내역
+              조달·입찰 — PX/BX 업체 평가 상세 내역
             </h2>
             <div className="rounded-lg border overflow-hidden">
               <Table>
@@ -202,51 +204,92 @@ export default function AuditPage() {
                   <TableRow className="bg-amber-50">
                     <TableHead>순위</TableHead>
                     <TableHead>업체명</TableHead>
-                    <TableHead>입찰 품목</TableHead>
-                    <TableHead>가격 점수</TableHead>
-                    <TableHead>반영 (×0.7)</TableHead>
-                    <TableHead>기술 점수</TableHead>
-                    <TableHead>반영 (×0.3)</TableHead>
-                    <TableHead className="text-center">종합 점수</TableHead>
+                    <TableHead>소분류</TableHead>
+                    <TableHead className="text-center">적격심사</TableHead>
+                    <TableHead className="text-center">할인율(%)</TableHead>
+                    <TableHead className="text-center">합산 점수</TableHead>
+                    <TableHead className="text-center">개찰 여부</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {[...state.vendors]
-                    .sort((a, b) => b.totalScore - a.totalScore)
+                    .filter((v) => v.vendorChannel === "PX/BX")
+                    .sort((a, b) => (b.totalScore ?? 0) - (a.totalScore ?? 0))
                     .map((vendor) => (
                       <TableRow key={vendor.id}>
                         <TableCell className="font-bold text-sm text-amber-500">
-                          {vendor.rank}위
+                          {vendor.rank ? `${vendor.rank}위` : "—"}
                         </TableCell>
                         <TableCell className="font-medium">{vendor.name}</TableCell>
-                        <TableCell className="text-slate-500 text-sm">{vendor.item}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <div className="w-12 h-1.5 bg-slate-100 rounded-full">
-                              <div className="h-full bg-amber-400 rounded-full" style={{ width: `${vendor.priceScore}%` }} />
-                            </div>
-                            <span className="text-xs">{vendor.priceScore}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium text-amber-600">
-                          {(vendor.priceScore * 0.7).toFixed(1)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <div className="w-12 h-1.5 bg-slate-100 rounded-full">
-                              <div className="h-full bg-blue-400 rounded-full" style={{ width: `${vendor.technicalScore}%` }} />
-                            </div>
-                            <span className="text-xs">{vendor.technicalScore}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium text-blue-600">
-                          {(vendor.technicalScore * 0.3).toFixed(1)}
+                        <TableCell className="text-slate-500 text-sm">{vendor.subCategory}</TableCell>
+                        <TableCell className="text-center">{vendor.qualificationScore ?? "—"}</TableCell>
+                        <TableCell className="text-center">{vendor.discountRate ?? "—"}%</TableCell>
+                        <TableCell className="text-center">
+                          <span className="font-bold text-blue-700">{vendor.totalScore ?? "—"}</span>
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className="font-bold text-blue-700 text-lg">{vendor.totalScore}</span>
+                          {vendor.passedQualification
+                            ? <Badge variant="success" className="text-[10px]">개찰 대상</Badge>
+                            : <Badge variant="destructive" className="text-[10px]">80점 미달</Badge>
+                          }
                         </TableCell>
                       </TableRow>
                     ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2 mt-5 mb-3">
+              <BarChart3 className="w-4 h-4 text-blue-500" />
+              WA-mall 업체 평가 상세 내역
+            </h2>
+            <div className="rounded-lg border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-blue-50">
+                    <TableHead>업체명</TableHead>
+                    <TableHead>대분류</TableHead>
+                    <TableHead>소분류</TableHead>
+                    <TableHead>신청유형</TableHead>
+                    <TableHead className="text-right">시중최저가</TableHead>
+                    <TableHead className="text-right">판매요청가</TableHead>
+                    <TableHead className="text-center">할인율</TableHead>
+                    <TableHead className="text-center">가격요건</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {state.vendors
+                    .filter((v) => v.vendorChannel === "WA-mall")
+                    .map((vendor) => {
+                      const discountPct = vendor.marketLowestPrice && vendor.requestedPrice
+                        ? Math.round((1 - vendor.requestedPrice / vendor.marketLowestPrice) * 1000) / 10
+                        : 0;
+                      const ok = vendor.marketLowestPrice != null && vendor.requestedPrice != null
+                        && vendor.requestedPrice <= vendor.marketLowestPrice * 0.9;
+                      return (
+                        <TableRow key={vendor.id}>
+                          <TableCell className="font-medium">{vendor.name}</TableCell>
+                          <TableCell className="text-slate-500 text-sm">{vendor.productCategory ?? "—"}</TableCell>
+                          <TableCell className="text-slate-500 text-sm">{vendor.subCategory}</TableCell>
+                          <TableCell className="text-sm">{vendor.vendorSaleType ?? "—"}</TableCell>
+                          <TableCell className="text-right text-sm">
+                            {vendor.marketLowestPrice?.toLocaleString() ?? "—"}원
+                          </TableCell>
+                          <TableCell className="text-right text-sm">
+                            {vendor.requestedPrice?.toLocaleString() ?? "—"}원
+                          </TableCell>
+                          <TableCell className="text-center font-medium">
+                            {discountPct.toFixed(1)}%
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {ok
+                              ? <Badge variant="success" className="text-[10px]">충족</Badge>
+                              : <Badge variant="destructive" className="text-[10px]">미충족</Badge>
+                            }
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                 </TableBody>
               </Table>
             </div>

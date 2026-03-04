@@ -128,9 +128,9 @@ export default function StudentList() {
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="text-[10px] text-slate-500 space-y-0.5">
-                      <div>거리 <span className="font-medium text-blue-500">{student.scores.distance}</span></div>
-                      <div>다자녀 <span className="font-medium text-purple-500">{student.scores.multiChild}</span></div>
-                      <div>여건 <span className="font-medium text-amber-500">{student.scores.hardship}</span></div>
+                      <div>학교 <span className="font-medium text-blue-500">{student.scores.schoolScore}</span></div>
+                      <div>복무 <span className="font-medium text-emerald-500">{student.scores.serviceScore}</span></div>
+                      <div>거리 <span className="font-medium text-amber-500">{student.scores.studentDistScore + student.scores.parentDistScore}</span></div>
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
