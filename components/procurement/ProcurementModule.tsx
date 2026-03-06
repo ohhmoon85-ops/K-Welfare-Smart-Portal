@@ -4,31 +4,30 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import VendorForm from "./VendorForm";
 import VendorList from "./VendorList";
-import { List, PlusCircle, ClipboardList, Globe } from "lucide-react";
+import ProcurementCriteria from "./ProcurementCriteria";
+import { List, ClipboardList, Globe, Scale } from "lucide-react";
 
 // ─── PX/BX 10단계 선정절차 타임라인 ────────────────────────────────────────────
-
 const PX_TIMELINE = [
   { step: "①", label: "사업계획 수립",       period: "1~2월",  done: true },
   { step: "②", label: "수요조사",             period: "2~3월",  done: true },
   { step: "③", label: "선정공고",             period: "3월",    done: true },
   { step: "④", label: "전산 신청",            period: "3~4월",  done: true },
-  { step: "⑤", label: "서류 접수",            period: "4월",    done: true },
-  { step: "⑥", label: "적격심사",             period: "4~5월",  done: false, note: "" },
-  { step: "⑦", label: "소분류별 가중치 산출", period: "5월",    done: false, note: "" },
+  { step: "⑤", label: "서류 접수",            period: "4월",    done: true, note: "담당자 — 이 화면에서 접수 처리" },
+  { step: "⑥", label: "적격심사",             period: "4~5월",  done: false },
+  { step: "⑦", label: "소분류별 가중치 산출", period: "5월",    done: false },
   { step: "⑧", label: "개찰 / 1차 선정",      period: "5~6월",  done: false, note: "적격심사 80점 이상 + 할인율 합산 → 소분류별 1차 선정" },
-  { step: "⑨", label: "2차 심의 / 최종 선정", period: "6~7월",  done: false, note: "" },
-  { step: "⑩", label: "계약 체결",            period: "7~8월",  done: false, note: "" },
+  { step: "⑨", label: "2차 심의 / 최종 선정", period: "6~7월",  done: false },
+  { step: "⑩", label: "계약 체결",            period: "7~8월",  done: false },
 ];
 
 // ─── WA-mall 5단계 선정절차 타임라인 ────────────────────────────────────────────
-
 const WA_TIMELINE = [
-  { step: "①", label: "사업공고",      period: "3.3~3.11",   done: true,  note: "" },
-  { step: "②", label: "업체 전산입력", period: "3.6~3.17",   done: true,  note: "국군복지단 선정관리시스템 입력" },
-  { step: "③", label: "서류 접수",     period: "3.24~",      done: false, note: "별지 #1~#5 구비서류 제출" },
-  { step: "④", label: "적격심사",      period: "4~5월 중",   done: false, note: "서류심사 + 가격조사(최저가 10%↑) + 물품 적합성" },
-  { step: "⑤", label: "계약 체결",     period: "5월 중",     done: false, note: "계약기간: ~2027.12.31 / 복지율 4%" },
+  { step: "①", label: "사업공고",      period: "3.3~3.11",  done: true,  note: "" },
+  { step: "②", label: "업체 전산입력", period: "3.6~3.17",  done: true,  note: "국군복지단 선정관리시스템 입력" },
+  { step: "③", label: "서류 접수",     period: "3.24~",     done: false, note: "담당자 — 이 화면에서 접수 처리 (별지 #1~#5)" },
+  { step: "④", label: "적격심사",      period: "4~5월 중",  done: false, note: "서류심사 + 가격조사(최저가 10%↑) + 물품 적합성" },
+  { step: "⑤", label: "계약 체결",     period: "5월 중",    done: false, note: "계약기간: ~2027.12.31 / 복지율 4%" },
 ];
 
 function Timeline({ items, color }: {
@@ -37,12 +36,13 @@ function Timeline({ items, color }: {
 }) {
   const active = color === "amber" ? "bg-amber-500 text-white" : "bg-blue-500 text-white";
   const noteBg = color === "amber" ? "text-amber-600" : "text-blue-600";
+  const highlight = color === "amber" ? "bg-amber-50 border border-amber-200 rounded-lg" : "bg-blue-50 border border-blue-200 rounded-lg";
   return (
     <div className="relative">
       <div className="absolute left-[17px] top-4 bottom-4 w-0.5 bg-slate-200" />
       <div className="space-y-3">
         {items.map((t) => (
-          <div key={t.step} className="flex items-start gap-3">
+          <div key={t.step} className={`flex items-start gap-3 ${t.note?.includes("이 화면") ? "p-2 " + highlight : ""}`}>
             <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
               t.done ? active : "bg-slate-100 text-slate-500 border border-slate-300"
             }`}>
@@ -52,6 +52,9 @@ function Timeline({ items, color }: {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-sm font-medium ${t.done ? "text-slate-800" : "text-slate-500"}`}>{t.label}</span>
                 <Badge variant={t.done ? "success" : "secondary"} className="text-[10px] py-0">{t.period}</Badge>
+                {t.note?.includes("이 화면") && (
+                  <Badge variant="warning" className="text-[10px] py-0">현재 단계</Badge>
+                )}
               </div>
               {t.note && <p className={`text-[10px] mt-0.5 ${noteBg}`}>{t.note}</p>}
             </div>
@@ -65,18 +68,22 @@ function Timeline({ items, color }: {
 export default function ProcurementModule() {
   return (
     <Tabs defaultValue="list" className="space-y-4">
-      <TabsList className="grid w-full max-w-sm grid-cols-3">
+      <TabsList className="grid w-full max-w-xl grid-cols-4">
         <TabsTrigger value="list" className="gap-1.5">
           <List className="w-3.5 h-3.5" />
           업체 현황
         </TabsTrigger>
         <TabsTrigger value="register" className="gap-1.5">
-          <PlusCircle className="w-3.5 h-3.5" />
-          업체 등록
+          <ClipboardList className="w-3.5 h-3.5" />
+          서류 접수
         </TabsTrigger>
         <TabsTrigger value="timeline" className="gap-1.5">
-          <ClipboardList className="w-3.5 h-3.5" />
+          <Globe className="w-3.5 h-3.5" />
           선정 절차
+        </TabsTrigger>
+        <TabsTrigger value="criteria" className="gap-1.5">
+          <Scale className="w-3.5 h-3.5" />
+          선정 기준
         </TabsTrigger>
       </TabsList>
 
@@ -119,6 +126,10 @@ export default function ProcurementModule() {
             </CardContent>
           </Card>
         </div>
+      </TabsContent>
+
+      <TabsContent value="criteria">
+        <ProcurementCriteria />
       </TabsContent>
     </Tabs>
   );
